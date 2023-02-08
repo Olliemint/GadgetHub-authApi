@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'users'
 ]
 
 MIDDLEWARE = [
@@ -130,3 +131,6 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
 
 }
+
+
+AUTH_USER_MODEL = 'users.UserAccount'
