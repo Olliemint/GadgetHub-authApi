@@ -1,13 +1,18 @@
-from django.shortcuts import render
+
+
+
+from django.contrib.auth import authenticate, login,logout
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.forms import AuthenticationForm
+from django.shortcuts import render, redirect
+from django.contrib import messages
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions,status
 from  .serializers import RegisterUserSerializer
-from django.contrib.auth import get_user_model
-
-
-User = get_user_model()
+from .forms import RegistrationForm
+from .models import UserAccount
 
 
 class RegisterView(APIView):
@@ -16,16 +21,88 @@ class RegisterView(APIView):
         
         data = request.data
         
-        first_name = data["first_name"]
-        last_name = data["last_name"]
-        email = data["email"]
-        password = data["password"]
+        serializer =RegisterUserSerializer(data=data)
         
-        user= User.objects.create_user(first_name=first_name, last_name=last_name, email=email, password=password)
+        if not serializer.is_valid():
+            
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+        
+        user = serializer.create(serializer.validated_data)
+        
         user = RegisterUserSerializer(user)
         return Response(user.data,status=status.HTTP_201_CREATED)
     
     
 class RetrieveUserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     
-    pass
+    def get(self, request):
+        
+        pass
+    
+    
+    
+    
+def login_view(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('home')
+    else:
+        form = AuthenticationForm()
+    return render(request, 'login.html', {'form': form})
+
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
+
+
+def register_view(request,min_length=8):
+        if request.method == 'POST':
+            email = request.POST['email']
+            first_name = request.POST['first_name']
+            last_name = request.POST['last_name']
+            
+        
+            password = request.POST['password']
+            
+            
+        
+        
+            if len(password) > min_length:
+                
+                if UserAccount.objects.filter(email=email).exists():
+                    messages.info(request,'Email already exists')
+                    return redirect('signup')
+                
+               
+                
+                else:
+                    # hashed_password = make_password('password')
+                    user = UserAccount.objects.create_user(first_name=first_name,last_name =last_name,email=email,password=password)
+                    user.save()
+                    # user_model = UserAccount.objects.get(username=username)
+                    # new_profile = Profile.objects.create(user=user_model,id_user=user_model.id)
+                    return redirect('login')
+
+                    
+            else:
+                messages.info(request,'Password length mismatch')  
+                return redirect('signup')
+    
+        return render(request, 'register.html')
+
+
+def home_view(request):
+    return render(request, 'home.html')
+    
+    
+    
+
