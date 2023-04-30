@@ -13,6 +13,9 @@ from rest_framework import permissions,status
 from  .serializers import RegisterUserSerializer
 from .forms import RegistrationForm
 from .models import UserAccount
+import jwt
+from django.conf import settings
+from django.contrib.auth import authenticate
 
 
 class RegisterView(APIView):
@@ -33,12 +36,22 @@ class RegisterView(APIView):
         return Response(user.data,status=status.HTTP_201_CREATED)
     
     
-class RetrieveUserView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get(self, request):
-        
-        pass
+class LoginView(APIView):
+    def post(self, request, format=None):
+        email = request.data.get('email')
+        password = request.data.get('password')
+        email=email.lower()
+        user = authenticate(request, username=email, password=password)
+
+        if user is not None:
+            payload = {
+                'user_id': user.id,
+                'email': user.email
+            }
+            token = jwt.encode(payload, settings.SECRET_KEY)
+            return Response({'token': token}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Invalid email or password'}, status=status.HTTP_401_UNAUTHORIZED)
     
     
     
